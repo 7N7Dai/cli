@@ -1,0 +1,33 @@
+{
+  "name": "@7n7d/cli",
+  "version": "0.1.0",
+  "description": "CLI tool for the 7N7D protocol",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "7n7d": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@7n7d/sdk": "workspace:*",
+    "chalk": "^4.1.2",
+    "commander": "^12.0.0",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.5",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  },
+  "license": "MIT"
+}
