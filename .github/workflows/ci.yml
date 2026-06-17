@@ -45,7 +45,11 @@ jobs:
 
       - name: Install SDK dependencies
         working-directory: sdk
-        run: npm ci
+        # Use `npm install` (not `npm ci`) so the SDK's lockfile can
+        # tolerate minor drift from `main`. The SDK lives in its own
+        # repo with its own lockfile; this keeps the cross-repo build
+        # robust against lockfile regenerations on the SDK side.
+        run: npm install --no-audit --no-fund
 
       - name: Build SDK
         working-directory: sdk
