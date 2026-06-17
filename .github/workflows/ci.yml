@@ -1,6 +1,6 @@
 name: CI
 
-on:
+"on":
   workflow_dispatch:
   push:
     branches: [main]
@@ -38,12 +38,10 @@ jobs:
           persist-credentials: false
           path: sdk
 
-      - name: Set up Node.js (SDK)
-        working-directory: sdk
+      - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install SDK dependencies
         working-directory: sdk
@@ -53,18 +51,11 @@ jobs:
         working-directory: sdk
         run: npm run build
 
-      - name: Set up Node.js (CLI)
-        working-directory: cli
-        uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-
       - name: Install CLI dependencies
         working-directory: cli
         run: npm ci
 
-      - name: Typecheck
+      - name: Build (also acts as typecheck)
         working-directory: cli
         # `tsc --noEmit` flags minor incompatibilities in the SDK's
         # transitive deps (ox/Base64 uses `replaceAll`, ts-jest ships

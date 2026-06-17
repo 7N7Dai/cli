@@ -11,7 +11,7 @@ name: Release
 # Optional repo variables:
 #   RELEASE_PLEASE_CONFIG  — JSON string overriding default config
 
-on:
+"on":
   push:
     branches: [main]
 
