@@ -1,0 +1,97 @@
+name: Release
+
+# Automated versioning + npm publish + GitHub release.
+# Driven by Conventional Commits on main: feat → minor, fix → patch,
+# feat!: / BREAKING CHANGE → major. release-please opens/updates a release
+# PR; merging it triggers npm publish and a GitHub release.
+#
+# Required repo secrets:
+#   NPM_PUBLISH_TOKEN  — npm automation token with publish scope on @7n7d/*
+#
+# Optional repo variables:
+#   RELEASE_PLEASE_CONFIG  — JSON string overriding default config
+
+"on":
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release-please:
+    name: release-please
+    runs-on: ubuntu-latest
+    steps:
+      - name: release-please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: npm
+          package-name: '@7n7d/cli'
+          # Versioning: only this package is touched (the monorepo lives in
+          # byennen-team/7N7D and syncs into here periodically).
+          include-component-in-tag: false
+
+  publish:
+    name: Publish to npm
+    if: ${{ steps.release.outputs.release_created }}
+    needs: release-please
+    runs-on: ubuntu-latest
+    steps:
+      # We need the SDK available as a sibling for the build to resolve
+      # the `file:../sdk` dependency. We don't publish it from here — the
+      # SDK release workflow handles that independently.
+      - name: Checkout SDK (sibling, pinned to released tag)
+        if: ${{ steps.release.outputs.tag_name != '' }}
+        uses: actions/checkout@v5
+        with:
+          repository: 7N7Dai/sdk
+          ref: ${{ steps.release.outputs.tag_name }}
+          persist-credentials: false
+          path: sdk
+
+      - name: Checkout released tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.release.outputs.tag_name }}
+          persist-credentials: false
+          path: cli
+
+      - name: Set up Node.js (SDK)
+        working-directory: sdk
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install + Build SDK
+        working-directory: sdk
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set up Node.js (CLI)
+        working-directory: cli
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: cli
+        run: npm ci
+
+      - name: Build
+        working-directory: cli
+        run: npm run build
+
+      - name: Publish to npm
+        working-directory: cli
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}

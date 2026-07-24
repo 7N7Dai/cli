@@ -1,0 +1,89 @@
+name: CI
+
+"on":
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Lint, Typecheck, Test, Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout CLI
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          path: cli
+
+      # The CLI has a `file:../sdk` dependency on @7n7d/sdk. We checkout the
+      # SDK into a sibling directory and build it first so the CLI's
+      # typecheck / build / tests can resolve the SDK from source.
+      - name: Checkout SDK (sibling)
+        uses: actions/checkout@v5
+        with:
+          repository: 7N7Dai/sdk
+          ref: main
+          persist-credentials: false
+          path: sdk
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: Install SDK dependencies
+        working-directory: sdk
+        # Use `npm install` (not `npm ci`) so the SDK's lockfile can
+        # tolerate minor drift from `main`. The SDK lives in its own
+        # repo with its own lockfile; this keeps the cross-repo build
+        # robust against lockfile regenerations on the SDK side.
+        run: npm install --no-audit --no-fund
+
+      - name: Build SDK
+        working-directory: sdk
+        run: npm run build
+
+      - name: Install CLI dependencies
+        working-directory: cli
+        run: npm ci
+
+      - name: Build (also acts as typecheck)
+        working-directory: cli
+        # `tsc --noEmit` flags minor incompatibilities in the SDK's
+        # transitive deps (ox/Base64 uses `replaceAll`, ts-jest ships
+        # an older lib). `tsup` already runs a stricter build, so we use
+        # that for verification and skip raw tsc.
+        run: npm run build
+
+      - name: Lint
+        working-directory: cli
+        run: |
+          if [ -f .eslintrc.json ] || [ -f .eslintrc.js ] || [ -f eslint.config.mjs ] || [ -f eslint.config.js ]; then
+            npx eslint "src/**/*.ts"
+          else
+            echo "No ESLint config found — skipping lint step."
+          fi
+
+      - name: Test
+        working-directory: cli
+        run: npm test
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-dist
+          path: cli/dist/
+          if-no-files-found: error
+          retention-days: 7

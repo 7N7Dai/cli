@@ -16,7 +16,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@7n7d/sdk": "workspace:*",
+    "@7n7d/sdk": "file:../sdk",
     "chalk": "^4.1.2",
     "commander": "^12.0.0",
     "ora": "^5.4.1"

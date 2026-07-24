@@ -1,0 +1,8 @@
+# Code owners — automatically requested for review on PRs.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything
+*       @byennen @dev7n7d
+
+# Workflow changes require an extra pair of eyes
+/.github/    @byennen
